@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>96–97 — Parking Lot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  ::selection { background: #1a1a1a; color: #f5f0e8; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #f5f0e8; }
+  ::-webkit-scrollbar-thumb { background: #c4b9a8; }
+
+  body {
+    background: #f5f0e8;
+    color: #1a1a1a;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 64px 48px 52px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: clamp(4rem, 10vw, 7.5rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.88;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  .frame-count {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 600;
+    padding-bottom: 6px;
+  }
+
+  .subtitle {
+    margin-top: 18px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: none;
+    color: #666;
+    line-height: 2;
+    font-family: 'Special Elite', 'Courier New', monospace;
+  }
+
+  /* ── GALLERY CONTAINER ── */
+  .gallery-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px 32px 140px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── ROW SYSTEM ── */
+  /* Each "row" is a flex row of photos. Layouts:
+     - solo: one photo, full width (wide landscape or hero portrait)
+     - duo: two photos side by side
+     - trio: three photos
+     - pair-big: one 60% + one 40%
+     - pair-tall: one portrait left + one landscape right stacked
+  */
+
+  .row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    align-items: stretch;
+  }
+
+  .photo-cell {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+    flex-shrink: 0;
+  }
+
+  .photo-cell.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .photo-cell img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center center;
+    filter: contrast(1.04) saturate(0.9);
+    transition: filter 0.5s ease, transform 0.6s ease;
+  }
+
+  /* Per-photo crop anchors */
+  .photo-cell[data-id="photo007"] img,
+  .photo-cell[data-id="photo010"] img,
+  .photo-cell[data-id="photo016"] img {
+    object-position: center top;
+  }
+  .photo-cell[data-id="photo040"] img {
+    object-position: center 20%;
+  }
+  .photo-cell[data-id="photo049"] img {
+    object-position: right center;
+  }
+
+  .photo-cell:hover img {
+    filter: contrast(1.14) saturate(0.78);
+    transform: scale(1.012);
+  }
+
+  /* Width helpers */
+  .w-full  { flex: 0 0 100%; }
+  .w-half  { flex: 0 0 calc(50% - 7px); }
+  .w-third { flex: 0 0 calc(33.333% - 9.33px); }
+  .w-60    { flex: 0 0 calc(60% - 7px); }
+  .w-40    { flex: 0 0 calc(40% - 7px); }
+  .w-65    { flex: 0 0 calc(65% - 7px); }
+  .w-35    { flex: 0 0 calc(35% - 7px); }
+
+  /* Height helpers — images fill the cell height */
+  .h-auto img { height: auto; object-fit: contain; }
+  .h-300  { height: 300px; }
+  .h-380  { height: 380px; }
+  .h-440  { height: 440px; }
+  .h-500  { height: 500px; }
+  .h-560  { height: 560px; }
+  .h-620  { height: 620px; }
+
+  /* Per-photo width swaps */
+  .photo-cell[data-id="photo061"] { flex: 0 0 calc(40% - 7px) !important; }
+  .photo-cell[data-id="photo127"] { flex: 0 0 calc(60% - 7px) !important; }
+
+  /* Per-photo height overrides */
+  .photo-cell[data-id="photo016"] {
+    height: 960px !important;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .stack .photo-cell {
+    flex: 1;
+  }
+
+  .frame-stamp {
+    display: none;
+  }
+
+  /* ── SEPARATOR ── */
+  .sep {
+    border: none;
+    border-top: 1px solid #d9d1c0;
+    margin: 52px 0 48px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .sep.visible { opacity: 1; }
+
+  /* ── FOOTER ── */
+  .gallery-footer {
+    text-align: center;
+    margin-top: 80px;
+    padding-top: 36px;
+    border-top: 1px solid #d4cbb8;
+  }
+  .gallery-footer p {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #888;
+  }
+  .footer-credit {
+    margin-top: 18px;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+    font-size: 12px !important;
+    color: #666 !important;
+    line-height: 2.2;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .footer-credit a {
+    color: #555;
+    text-decoration: none;
+    border-bottom: 1px solid #bbb;
+    padding-bottom: 1px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .footer-credit a:hover {
+    color: #1a1a1a;
+    border-color: #1a1a1a;
+  }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 6, 4, 0.97);
+    backdrop-filter: blur(8px);
+    cursor: zoom-out;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.25em;
+    cursor: pointer;
+    padding: 10px 14px;
+    z-index: 10;
+    transition: color 0.2s;
+    text-transform: uppercase;
+  }
+  .lightbox-close:hover { color: #fff; }
+
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 40px;
+    cursor: pointer;
+    padding: 28px 20px;
+    z-index: 10;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-weight: 100;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .lightbox-nav:hover { color: #ddd; }
+  .lightbox-nav.prev { left: 8px; }
+  .lightbox-nav.next { right: 8px; }
+
+  .lightbox-content {
+    max-width: 90vw;
+    max-height: 90vh;
+    cursor: default;
+    animation: scaleIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .lightbox-content img {
+    max-width: 88vw;
+    max-height: 82vh;
+    object-fit: contain;
+    display: block;
+    filter: contrast(1.02);
+  }
+
+  .lightbox-meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    max-width: 88vw;
+  }
+
+  .lightbox-meta span {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: #444;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+  }
+
+  .lb-download {
+    background: #f5f0e8;
+    border: none;
+    color: #1a1a1a;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 8px 18px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .lb-download:hover { background: #fff; color: #000; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeUp  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+  /* ── MOBILE ── */
+  @media (max-width: 700px) {
+    header { padding: 40px 20px 32px; }
+    .gallery-wrap { padding: 8px 14px 80px; }
+
+    .row { flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .photo-cell { flex: 0 0 100% !important; }
+    .stack { gap: 8px; }
+
+    .h-300, .h-380, .h-440, .h-500, .h-560, .h-620 { height: 220px; }
+    .h-auto img { height: auto; }
+
+    .lightbox-nav { font-size: 30px; padding: 18px 10px; }
+    .lightbox-content img { max-width: 96vw; max-height: 80vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <h1>96–97</h1>
+    <span class="frame-count">56 frames</span>
+  </div>
+  <p class="subtitle">Rejected from the student newspaper. Finally in print (sort of).<br>In loving memory of RJ, Kathryn, Shannon, Elizabeth, Stephanie, Jessica, and Tyler,<br>and anyone else from this parking lot we've since lost.</p>
+</header>
+
+<div class="gallery-wrap" id="galleryWrap">
+  <!-- Rows are built by JS -->
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" style="display:none" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="event.stopPropagation(); closeLightbox()">Close ×</button>
+  <button class="lightbox-nav prev" id="prevBtn" onclick="event.stopPropagation(); navPhoto(-1)">‹</button>
+  <button class="lightbox-nav next" id="nextBtn" onclick="event.stopPropagation(); navPhoto(1)">›</button>
+  <div class="lightbox-content" onclick="event.stopPropagation()">
+    <img id="lightbox-img" src="" alt="" />
+    <div class="lightbox-meta">
+      <button class="lb-download" id="dlBtn" onclick="event.stopPropagation(); downloadCurrent()">↓ Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const REPO = '.';
+
+// ── Seeded shuffle ──
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = seed;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 16807) % 2147483647;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Photo metadata: aspect hints ──
+// 'L' = landscape, 'P' = portrait, 'S' = square-ish
+// This allows the layout engine to make smart grouping decisions.
+// Default is 'L' if unknown.
+const PORTRAIT_IDS = new Set([
+  'photo002','photo003','photo005','photo007','photo008','photo009',
+  'photo011','photo012','photo014','photo015','photo017','photo019',
+  'photo022','photo023','photo024','photo026','photo028','photo029',
+  'photo031','photo032','photo039','photo041','photo042','photo046',
+  'photo047','photo048','photo049'
+]);
+
+const FEATURED = new Set([
+  'photo001','photo010','photo013','photo016','photo018','photo020',
+  'photo021','photo025','photo027','photo030','photo040','photo043',
+  'photo044','photo045','photo058','photo059','photo127'
+]);
+
+const allFiles = [
+  'photo001.jpg','photo002.jpg','photo003.jpg','photo004.jpg','photo005.jpg',
+  'photo006.jpg','photo007.jpg','photo008.jpg','photo009.jpg','photo010.jpg',
+  'photo011.jpg','photo012.jpg','photo013.jpg','photo014.jpg','photo015.jpg',
+  'photo016.jpg','photo017.jpg','photo018.jpg','photo019.jpg','photo020.jpg',
+  'photo021.jpg','photo022.jpg','photo023.jpg','photo024.jpg','photo025.jpg',
+  'photo026.jpg','photo027.jpg','photo028.jpg','photo029.jpg','photo030.jpg',
+  'photo031.jpg','photo032.jpg','photo036.jpg','photo037.jpg','photo038.jpg',
+  'photo039.jpg','photo040.jpg','photo041.jpg','photo042.jpg','photo043.jpg',
+  'photo044.jpg','photo045.jpg','photo046.jpg','photo047.jpg','photo048.jpg',
+  'photo049.jpg','photo057.jpg','photo058.jpg','photo059.jpg','photo060.jpg',
+  'photo061.jpg','photo082.jpg','photo089.jpg','photo127.jpg','photo128.jpg',
+  'photo150.jpg'
+];
+
+function isPortrait(fn) { return PORTRAIT_IDS.has(fn.replace('.jpg','')); }
+function isFeatured(fn) { return FEATURED.has(fn.replace('.jpg','')); }
+
+// ── Layout definitions ──
+// Each layout is a function(batch) => DOM element (a .row div)
+// batch is an array of filenames
+
+function makeCell(fn, globalIndex, widthClass, heightClass) {
+  const id = fn.replace('.jpg','');
+  const cell = document.createElement('div');
+  cell.className = `photo-cell ${widthClass} ${heightClass}`;
+  cell.dataset.index = globalIndex;
+  cell.dataset.id = id;
+  cell.onclick = () => openLightbox(globalIndex);
+  cell.innerHTML = `
+    <img src="${REPO}/${fn}" alt="${id}" loading="lazy" />
+    <div class="frame-stamp">${id}</div>
+  `;
+  return cell;
+}
+
+function rowSolo(fn, idx, h='h-500') {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fn, idx, 'w-full', h));
+  return { el: row, used: 1 };
+}
+
+function rowDuo(fns, idxStart, hClass='h-440') {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fns[0], idxStart,   'w-half', hClass));
+  row.appendChild(makeCell(fns[1], idxStart+1, 'w-half', hClass));
+  return { el: row, used: 2 };
+}
+
+function rowTrio(fns, idxStart, hClass='h-300') {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fns[0], idxStart,   'w-third', hClass));
+  row.appendChild(makeCell(fns[1], idxStart+1, 'w-third', hClass));
+  row.appendChild(makeCell(fns[2], idxStart+2, 'w-third', hClass));
+  return { el: row, used: 3 };
+}
+
+function rowBigSmall(fns, idxStart) {
+  // 60% landscape + 40% portrait
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fns[0], idxStart,   'w-60', 'h-420'));
+  row.appendChild(makeCell(fns[1], idxStart+1, 'w-40', 'h-420'));
+  return { el: row, used: 2 };
+}
+
+function rowSmallBig(fns, idxStart) {
+  // 40% portrait + 60% landscape
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fns[0], idxStart,   'w-40', 'h-420'));
+  row.appendChild(makeCell(fns[1], idxStart+1, 'w-60', 'h-420'));
+  return { el: row, used: 2 };
+}
+
+function rowPortraitPlusStack(fns, idxStart) {
+  // one tall portrait (65%) + two stacked on right (35%)
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.appendChild(makeCell(fns[0], idxStart, 'w-65', 'h-500'));
+  const stack = document.createElement('div');
+  stack.className = 'stack w-35';
+  const c1 = makeCell(fns[1], idxStart+1, '', 'h-240');
+  const c2 = makeCell(fns[2], idxStart+2, '', 'h-240');
+  c1.style.flex = '1';
+  c2.style.flex = '1';
+  stack.appendChild(c1);
+  stack.appendChild(c2);
+  row.appendChild(stack);
+  return { el: row, used: 3 };
+}
+
+function rowStackPlusPortrait(fns, idxStart) {
+  // two stacked on left (35%) + one tall portrait (65%)
+  const row = document.createElement('div');
+  row.className = 'row';
+  const stack = document.createElement('div');
+  stack.className = 'stack w-35';
+  const c1 = makeCell(fns[0], idxStart,   '', 'h-240');
+  const c2 = makeCell(fns[1], idxStart+1, '', 'h-240');
+  c1.style.flex = '1';
+  c2.style.flex = '1';
+  stack.appendChild(c1);
+  stack.appendChild(c2);
+  row.appendChild(stack);
+  row.appendChild(makeCell(fns[2], idxStart+2, 'w-65', 'h-500'));
+  return { el: row, used: 3 };
+}
+
+// ── Layout sequencer ──
+// Cycles through a curated sequence of layout types.
+// Picks the layout that best matches the portrait/landscape mix in the batch.
+
+const LAYOUT_CYCLE = [
+  'solo-hero',
+  'duo',
+  'portrait-stack',
+  'trio',
+  'big-small',
+  'duo',
+  'small-big',
+  'solo',
+  'trio',
+  'stack-portrait',
+  'big-small',
+  'duo',
+];
+
+function buildGallery(fileNames) {
+  const wrap = document.getElementById('galleryWrap');
+  let idx = 0;
+  let layoutCyclePos = 0;
+
+  while (idx < fileNames.length) {
+    const remaining = fileNames.length - idx;
+    const layoutType = LAYOUT_CYCLE[layoutCyclePos % LAYOUT_CYCLE.length];
+    layoutCyclePos++;
+
+    let result = null;
+
+    // Need at least N photos; fall back gracefully
+    if (layoutType === 'solo-hero' && remaining >= 1) {
+      // Hero: prefer featured or landscape
+      result = rowSolo(fileNames[idx], idx, 'h-560');
+    } else if (layoutType === 'solo' && remaining >= 1) {
+      result = rowSolo(fileNames[idx], idx, 'h-440');
+    } else if (layoutType === 'duo' && remaining >= 2) {
+      result = rowDuo(fileNames.slice(idx, idx+2), idx, 'h-400');
+    } else if (layoutType === 'trio' && remaining >= 3) {
+      result = rowTrio(fileNames.slice(idx, idx+3), idx, 'h-320');
+    } else if (layoutType === 'big-small' && remaining >= 2) {
+      result = rowBigSmall(fileNames.slice(idx, idx+2), idx);
+    } else if (layoutType === 'small-big' && remaining >= 2) {
+      result = rowSmallBig(fileNames.slice(idx, idx+2), idx);
+    } else if (layoutType === 'portrait-stack' && remaining >= 3) {
+      result = rowPortraitPlusStack(fileNames.slice(idx, idx+3), idx);
+    } else if (layoutType === 'stack-portrait' && remaining >= 3) {
+      result = rowStackPlusPortrait(fileNames.slice(idx, idx+3), idx);
+    } else {
+      // Fallback: use whatever fits
+      if (remaining >= 3) {
+        result = rowTrio(fileNames.slice(idx, idx+3), idx, 'h-300');
+      } else if (remaining >= 2) {
+        result = rowDuo(fileNames.slice(idx, idx+2), idx, 'h-380');
+      } else {
+        result = rowSolo(fileNames[idx], idx, 'h-440');
+      }
+    }
+
+    wrap.appendChild(result.el);
+    idx += result.used;
+
+    // Occasional visual breathing room — thin rule
+    if (layoutCyclePos % 5 === 0 && idx < fileNames.length) {
+      const hr = document.createElement('hr');
+      hr.className = 'sep';
+      wrap.appendChild(hr);
+    }
+  }
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.className = 'gallery-footer';
+  footer.innerHTML = `
+    <p>End of roll — ${fileNames.length} frames recovered</p>
+    <p class="footer-credit">Unedited scans of 35mm negatives. Shot and kept safe for 30 years by <a href="mailto:sindee@gmail.com">Cynthia Henderson</a>. If you want something removed or a print-quality copy, reach out.</p>
+  `;
+  wrap.appendChild(footer);
+
+  // Scroll-reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+
+  document.querySelectorAll('.photo-cell, .sep').forEach(el => observer.observe(el));
+}
+
+// ── Ordering: featured woven in gracefully ──
+const shuffled = seededShuffle(allFiles, 9697);
+
+// Put featured photos at consistent anchor points (every ~4th slot),
+// fill gaps with regular photos.
+const featured = shuffled.filter(fn => isFeatured(fn));
+const regular  = shuffled.filter(fn => !isFeatured(fn));
+
+const fileNames = [];
+let fi = 0, ri = 0;
+
+// Strategy: place one featured every 3 regulars — avoids clusters
+while (fi < featured.length || ri < regular.length) {
+  for (let r = 0; r < 3 && ri < regular.length; r++) fileNames.push(regular[ri++]);
+  if (fi < featured.length) fileNames.push(featured[fi++]);
+}
+while (ri < regular.length) fileNames.push(regular[ri++]);
+
+buildGallery(fileNames);
+
+// ── Lightbox ──
+const lightbox = document.getElementById('lightbox');
+const lbImg    = document.getElementById('lightbox-img');
+const prevBtn  = document.getElementById('prevBtn');
+const nextBtn  = document.getElementById('nextBtn');
+
+let currentIndex = -1;
+
+function downloadCurrent() {
+  const fn = fileNames[currentIndex];
+  const url = `${REPO}/${fn}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fn;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function openLightbox(index) {
+  currentIndex = index;
+  updateLightbox();
+  lightbox.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.style.display = 'none';
+  document.body.style.overflow = '';
+  currentIndex = -1;
+}
+
+function navPhoto(dir) {
+  const next = currentIndex + dir;
+  if (next < 0 || next >= fileNames.length) return;
+  currentIndex = next;
+  updateLightbox();
+}
+
+function updateLightbox() {
+  const fn = fileNames[currentIndex];
+  const id = fn.replace('.jpg','');
+  lbImg.src = `${REPO}/${fn}`;
+  lbImg.alt = id;
+  prevBtn.style.display = currentIndex > 0 ? '' : 'none';
+  nextBtn.style.display = currentIndex < fileNames.length - 1 ? '' : 'none';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (currentIndex === -1) return;
+  if (e.key === 'Escape')      closeLightbox();
+  if (e.key === 'ArrowRight')  navPhoto(1);
+  if (e.key === 'ArrowLeft')   navPhoto(-1);
+});
+</script>
+</body>
+</html>
