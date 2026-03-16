@@ -348,20 +348,72 @@
   @keyframes fadeUp  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 
+  /* ── TABLET ── */
+  @media (max-width: 900px) {
+    .h-560, .h-620 { height: 420px; }
+    .h-500         { height: 380px; }
+    .h-440         { height: 340px; }
+    .h-380         { height: 300px; }
+  }
+
   /* ── MOBILE ── */
   @media (max-width: 700px) {
-    header { padding: 40px 20px 32px; }
-    .gallery-wrap { padding: 8px 14px 80px; }
+    header { padding: 32px 18px 24px; }
+    .gallery-wrap { padding: 8px 10px 80px; }
 
-    .row { flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-    .photo-cell { flex: 0 0 100% !important; }
-    .stack { gap: 8px; }
+    /* All rows go single-column */
+    .row {
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
 
-    .h-300, .h-380, .h-440, .h-500, .h-560, .h-620 { height: 220px; }
-    .h-auto img { height: auto; }
+    /* Every cell goes full width */
+    .photo-cell,
+    .photo-cell[data-id="photo061"],
+    .photo-cell[data-id="photo127"] {
+      flex: none !important;
+      width: 100% !important;
+    }
 
-    .lightbox-nav { font-size: 30px; padding: 18px 10px; }
-    .lightbox-content img { max-width: 96vw; max-height: 80vh; }
+    /* Stack becomes a normal vertical flow — no side-by-side */
+    .stack {
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+    .stack .photo-cell { flex: none !important; }
+
+    /* Heights: scale by viewport so taller phones get more image */
+    .h-300, .h-380 { height: clamp(160px, 52vw, 240px); }
+    .h-440, .h-500 { height: clamp(200px, 62vw, 300px); }
+    .h-560, .h-620 { height: clamp(220px, 70vw, 340px); }
+
+    /* Kill the 960px portrait override — use a tall but sane height */
+    .photo-cell[data-id="photo016"] { height: clamp(300px, 90vw, 480px) !important; }
+
+    /* Lightbox: bigger tap targets, full-bleed image */
+    .lightbox-close { top: 14px; right: 14px; font-size: 12px; padding: 12px 16px; }
+    .lightbox-nav {
+      font-size: 36px;
+      padding: 24px 16px;
+      /* Push arrows down slightly so they don't overlap the close button */
+      top: 55%;
+    }
+    .lightbox-nav.prev { left: 0; }
+    .lightbox-nav.next { right: 0; }
+    .lightbox-content { max-width: 100vw; max-height: 95vh; }
+    .lightbox-content img { max-width: 100vw; max-height: 82vh; }
+    .lightbox-meta { max-width: 96vw; margin-top: 10px; }
+  }
+
+  /* ── VERY SMALL PHONES ── */
+  @media (max-width: 380px) {
+    header { padding: 24px 14px 18px; }
+    .gallery-wrap { padding: 6px 8px 60px; }
+    .h-300, .h-380 { height: 150px; }
+    .h-440, .h-500 { height: 180px; }
+    .h-560, .h-620 { height: 200px; }
   }
 </style>
 </head>
@@ -706,6 +758,24 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight')  navPhoto(1);
   if (e.key === 'ArrowLeft')   navPhoto(-1);
 });
+
+// ── Touch swipe for lightbox ──
+let touchStartX = 0;
+let touchStartY = 0;
+
+lightbox.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+lightbox.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  const dy = e.changedTouches[0].screenY - touchStartY;
+  // Only register horizontal swipes that are clearly intentional
+  if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+  if (dx < 0) navPhoto(1);   // swipe left  → next
+  else         navPhoto(-1); // swipe right → prev
+}, { passive: true });
 </script>
 </body>
 </html>
